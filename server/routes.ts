@@ -72,7 +72,7 @@ export function registerRoutes(app: Express): Server {
       const queryEmbedding = await getEmbedding(q);
       console.log('Generated embedding');
 
-      // Calculate cosine similarity and filter by a threshold
+      // Calculate cosine similarity with a higher threshold
       const searchResults = await db.execute(sql`
         WITH similarity_results AS (
           SELECT 
@@ -88,7 +88,7 @@ export function registerRoutes(app: Express): Server {
         )
         SELECT *
         FROM similarity_results
-        WHERE similarity > 0.3
+        WHERE similarity > 0.7
         ORDER BY similarity DESC
         LIMIT 5
       `);
