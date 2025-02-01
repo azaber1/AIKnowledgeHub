@@ -1,0 +1,32 @@
+Build a modern, AI-enhanced knowledge base management SaaS using Next.js, Tailwind CSS, and LLM-powered search. The platform should allow users to store, manage, and search articles efficiently using an intelligent, natural language search powered by vector embeddings and an LLM model.
+
+Core Features:
+1. Intelligent Search and Retrieval
+Implement a semantic search functionality using LLM embeddings.
+Users should be able to type in natural language queries, and the system should return the most relevant knowledge base articles, even if the exact words don’t match.
+Use sentence-transformers (all-MiniLM-L6-v2) for embeddings.
+Store embeddings in a vector database (e.g., Pinecone, Weaviate, or Supabase vector search).
+Technical Requirements:
+Frontend (Next.js & Tailwind CSS)
+Next.js 14 with App Router for the frontend.
+Tailwind CSS for styling with a clean, minimalistic UI.
+Search bar on the homepage for users to type in queries.
+Display retrieved results in a list with titles, descriptions, and links to the full articles.
+A dashboard for adding, editing, and managing knowledge base articles.
+Backend (API & LLM Integration)
+API routes in Next.js (app directory) for handling search requests.
+Process natural language queries, generate embeddings, and perform a vector similarity search.
+Store articles in a PostgreSQL or MongoDB database.
+Use Pinecone, Weaviate, or Supabase Vector DB to store article embeddings.
+Implementation Steps:
+1. Database Setup (PostgreSQL / MongoDB / Supabase)
+Create a database schema for articles (title, content, embedding, metadata, createdAt, updatedAt).
+Store embeddings separately for faster searches.
+2. LLM-Powered Search API
+Preprocess knowledge base articles by embedding them using sentence-transformers.
+Store embeddings in Pinecone, Weaviate, or Supabase vector search.
+Embed incoming user queries and perform vector similarity search to return the best-matching articles.
+3. Next.js Frontend (Tailwind CSS)
+Home Page with a search bar and AI-powered suggestions.
+Search Results Page displaying relevant knowledge base articles.
+Admin Dashboard for adding, editing, and deleting articles.
