@@ -35,24 +35,27 @@ export function SearchBar({ className }: SearchBarProps) {
         </div>
       </div>
 
-      {query.length > 0 && results && (
+      {query.length > 0 && (
         <div className="absolute top-full mt-2 w-full bg-card border rounded-lg shadow-lg p-2 space-y-2 z-10">
-          {results.length > 0 ? (
+          {results && results.length > 0 ? (
             results.map((article) => (
               <Button
                 key={article.id}
                 variant="ghost"
                 className="w-full justify-start text-left"
-                onClick={() => {
-                  setQuery("");
-                }}
+                onClick={() => setQuery("")}
               >
-                {article.title}
+                <div>
+                  <div className="font-medium">{article.title}</div>
+                  <div className="text-sm text-muted-foreground line-clamp-1">
+                    {article.content}
+                  </div>
+                </div>
               </Button>
             ))
           ) : (
             <div className="text-center py-2 text-muted-foreground">
-              No articles found
+              {isLoading ? "Searching..." : "No articles found"}
             </div>
           )}
         </div>
