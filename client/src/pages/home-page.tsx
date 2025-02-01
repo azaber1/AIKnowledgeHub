@@ -14,20 +14,44 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Knowledge Base
-          </h1>
-          {user && (
-            <Link href="/admin">
-              <Button variant="outline">Admin Dashboard</Button>
-            </Link>
-          )}
+      <header className="bg-white border-b">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Knowledge Base
+              </h1>
+              <p className="mt-1 text-gray-500">
+                Find answers to your questions
+              </p>
+            </div>
+            {user && (
+              <Link href="/admin">
+                <Button variant="outline">Admin Dashboard</Button>
+              </Link>
+            )}
+          </div>
         </div>
+      </header>
 
-        <SearchBar className="max-w-2xl mx-auto mb-12" />
+      <div className="bg-gray-50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              How can we help you?
+            </h2>
+            <p className="text-lg text-gray-600 mb-8">
+              Search our knowledge base for answers
+            </p>
+            <SearchBar className="max-w-xl mx-auto" />
+          </div>
+        </div>
+      </div>
 
+      <main className="container mx-auto px-4 py-12">
+        <h3 className="text-xl font-semibold text-gray-900 mb-6">
+          Popular Articles
+        </h3>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
             Array(6).fill(0).map((_, i) => (
@@ -39,7 +63,7 @@ export default function HomePage() {
             ))
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
