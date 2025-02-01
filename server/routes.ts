@@ -3,27 +3,24 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { articles } from "@db/schema";
-import { eq, sql } from "drizzle-orm";
-import { pipeline } from "@xenova/transformers";
+import { eq } from "drizzle-orm";
+import OpenAI from "openai";
 
-// Initialize transformer pipeline
-let embedder: any = null;
-async function getEmbedder() {
-  if (!embedder) {
-    embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-  }
-  return embedder;
+// Initialize OpenAI client
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Get embedding using OpenAI
+async function getEmbedding(text: string) {
+  const response = await openai.embeddings.create({
+    model: "text-embedding-ada-002",
+    input: text,
+    encoding_format: "float",
+  });
+  return response.data[0].embedding;
 }
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
-
-  // Get embedding for text
-  async function getEmbedding(text: string) {
-    const model = await getEmbedder();
-    const output = await model(text, { pooling: 'mean', normalize: true });
-    return Array.from(output.data) as number[];
-  }
 
   // Protected API routes
   app.post("/api/articles", async (req, res) => {
