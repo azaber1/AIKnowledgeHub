@@ -22,68 +22,106 @@ export function registerRoutes(app: Express): Server {
   async function getEmbedding(text: string) {
     const model = await getEmbedder();
     const output = await model(text, { pooling: 'mean', normalize: true });
-    return Array.from(output.data);
+    return Array.from(output.data) as number[];
   }
 
   // Protected API routes
   app.post("/api/articles", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const { title, content } = req.body;
-    const embedding = await getEmbedding(title + " " + content);
-    
-    const [article] = await db.insert(articles).values({
-      title,
-      content,
-      embedding,
-      authorId: req.user.id,
-    }).returning();
-    
-    res.json(article);
+    if (!title || !content) {
+      return res.status(400).json({ message: "Title and content are required" });
+    }
+
+    try {
+      const embedding = await getEmbedding(title + " " + content);
+
+      const [article] = await db.insert(articles).values({
+        title,
+        content,
+        embedding,
+        authorId: req.user.id,
+      }).returning();
+
+      res.json(article);
+    } catch (error) {
+      console.error('Error creating article:', error);
+      res.status(500).json({ message: "Failed to create article" });
+    }
   });
 
   app.get("/api/articles", async (req, res) => {
-    const allArticles = await db.select().from(articles);
-    res.json(allArticles);
+    try {
+      const allArticles = await db.select().from(articles);
+      res.json(allArticles);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      res.status(500).json({ message: "Failed to fetch articles" });
+    }
   });
 
   app.get("/api/articles/search", async (req, res) => {
-    const { query } = req.query;
-    if (!query || typeof query !== "string") {
-      return res.status(400).send("Query parameter required");
+    const { q } = req.query;
+    if (!q || typeof q !== "string") {
+      return res.status(400).json({ message: "Search query (q) is required" });
     }
 
-    const queryEmbedding = await getEmbedding(query);
-    
-    const results = await db.query.articles.findMany({
-      orderBy: (articles, { sql }) => sql`"embedding" <-> ${queryEmbedding}::vector`,
-      limit: 5,
-    });
+    try {
+      const queryEmbedding = await getEmbedding(q);
 
-    res.json(results);
+      const results = await db.query.articles.findMany({
+        orderBy: (articles, { sql }) => sql`"embedding" <-> ${queryEmbedding}::vector`,
+        limit: 5,
+      });
+
+      res.json(results);
+    } catch (error) {
+      console.error('Error searching articles:', error);
+      res.status(500).json({ message: "Failed to search articles" });
+    }
   });
 
   app.put("/api/articles/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const { id } = req.params;
     const { title, content } = req.body;
-    const embedding = await getEmbedding(title + " " + content);
 
-    const [article] = await db.update(articles)
-      .set({ title, content, embedding, updatedAt: new Date() })
-      .where(eq(articles.id, parseInt(id)))
-      .returning();
+    if (!title || !content) {
+      return res.status(400).json({ message: "Title and content are required" });
+    }
 
-    res.json(article);
+    try {
+      const embedding = await getEmbedding(title + " " + content);
+
+      const [article] = await db.update(articles)
+        .set({ title, content, embedding, updatedAt: new Date() })
+        .where(eq(articles.id, parseInt(id)))
+        .returning();
+
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+
+      res.json(article);
+    } catch (error) {
+      console.error('Error updating article:', error);
+      res.status(500).json({ message: "Failed to update article" });
+    }
   });
 
   app.delete("/api/articles/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const { id } = req.params;
-    await db.delete(articles).where(eq(articles.id, parseInt(id)));
-    res.sendStatus(200);
+    try {
+      await db.delete(articles).where(eq(articles.id, parseInt(id)));
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error deleting article:', error);
+      res.status(500).json({ message: "Failed to delete article" });
+    }
   });
 
   const httpServer = createServer(app);

@@ -43,11 +43,12 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store,
+    cookie: {
+      secure: app.get("env") === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
   };
-
-  if (app.get("env") === "production") {
-    app.set("trust proxy", 1);
-  }
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
@@ -55,54 +56,77 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const [user] = await getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
+      try {
+        const [user] = await getUserByUsername(username);
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false, { message: "Invalid username or password" });
+        }
         return done(null, user);
+      } catch (err) {
+        return done(err);
       }
     }),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
 
-    done(null, user);
+      if (!user) {
+        return done(null, false);
+      }
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const result = insertUserSchema.safeParse(req.body);
-    if (!result.success) {
-      const error = fromZodError(result.error);
-      return res.status(400).send(error.toString());
+    try {
+      const result = insertUserSchema.safeParse(req.body);
+      if (!result.success) {
+        const error = fromZodError(result.error);
+        return res.status(400).json({ message: error.toString() });
+      }
+
+      const [existingUser] = await getUserByUsername(result.data.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          ...result.data,
+          password: await hashPassword(result.data.password),
+        })
+        .returning();
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(user);
+      });
+    } catch (err) {
+      next(err);
     }
-
-    const [existingUser] = await getUserByUsername(result.data.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
-    }
-
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...result.data,
-        password: await hashPassword(result.data.password),
-      })
-      .returning();
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ message: info?.message || "Authentication failed" });
+      }
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(200).json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
