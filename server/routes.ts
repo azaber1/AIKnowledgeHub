@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { articles } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { pipeline } from "@xenova/transformers";
 
 // Initialize transformer pipeline
@@ -70,10 +70,12 @@ export function registerRoutes(app: Express): Server {
     try {
       const queryEmbedding = await getEmbedding(q);
 
-      const results = await db.query.articles.findMany({
-        orderBy: (articles, { sql }) => sql`"embedding" <-> ${queryEmbedding}::vector`,
-        limit: 5,
-      });
+      const results = await db.execute(sql`
+        SELECT *, embedding <-> ${JSON.stringify(queryEmbedding)}::vector AS similarity 
+        FROM articles 
+        ORDER BY similarity ASC 
+        LIMIT 5
+      `);
 
       res.json(results);
     } catch (error) {
