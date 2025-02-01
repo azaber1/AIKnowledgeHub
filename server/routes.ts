@@ -68,16 +68,19 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
+      console.log('Searching for:', q);
       const queryEmbedding = await getEmbedding(q);
+      console.log('Generated embedding');
 
-      const results = await db.execute(sql`
-        SELECT *, embedding <-> ${JSON.stringify(queryEmbedding)}::vector AS similarity 
+      const searchResults = await db.execute(sql`
+        SELECT id, title, content, metadata, created_at as "createdAt", updated_at as "updatedAt", author_id as "authorId"
         FROM articles 
-        ORDER BY similarity ASC 
+        ORDER BY embedding <-> ${JSON.stringify(queryEmbedding)}::vector
         LIMIT 5
       `);
 
-      res.json(results);
+      console.log('Search results:', searchResults.rows);
+      res.json(searchResults.rows);
     } catch (error) {
       console.error('Error searching articles:', error);
       res.status(500).json({ message: "Failed to search articles" });
