@@ -6,10 +6,24 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import type { SelectArticle } from "@db/schema";
 
+interface GroupedArticles {
+  [key: string]: SelectArticle[];
+}
+
 export default function HomePage() {
   const { user } = useAuth();
   const { data: articles, isLoading } = useQuery<SelectArticle[]>({ 
     queryKey: ["/api/articles"]
+  });
+
+  // Group articles by category
+  const groupedArticles: GroupedArticles = {};
+  articles?.forEach(article => {
+    const category = article.metadata?.category || 'Uncategorized';
+    if (!groupedArticles[category]) {
+      groupedArticles[category] = [];
+    }
+    groupedArticles[category].push(article);
   });
 
   return (
@@ -49,20 +63,31 @@ export default function HomePage() {
       </div>
 
       <main className="container mx-auto px-4 py-12">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">
-          Popular Articles
-        </h3>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {isLoading ? (
-            Array(6).fill(0).map((_, i) => (
-              <div key={i} className="h-48 rounded-lg bg-muted animate-pulse" />
-            ))
-          ) : (
-            articles?.map(article => (
-              <ArticleCard key={article.id} article={article} />
-            ))
-          )}
-        </div>
+        {isLoading ? (
+          Array(3).fill(0).map((_, i) => (
+            <div key={i} className="mb-12">
+              <div className="h-8 w-48 bg-muted rounded animate-pulse mb-6" />
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {Array(3).fill(0).map((_, j) => (
+                  <div key={j} className="h-48 rounded-lg bg-muted animate-pulse" />
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          Object.entries(groupedArticles).map(([category, categoryArticles]) => (
+            <div key={category} className="mb-12">
+              <h3 className="text-xl font-semibold text-gray-900 mb-6">
+                {category}
+              </h3>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {categoryArticles.map(article => (
+                  <ArticleCard key={article.id} article={article} />
+                ))}
+              </div>
+            </div>
+          ))
+        )}
       </main>
     </div>
   );
