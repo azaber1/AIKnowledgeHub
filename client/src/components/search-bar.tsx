@@ -13,7 +13,7 @@ interface SearchBarProps {
 export function SearchBar({ className }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const { data: results, isLoading } = useQuery<SelectArticle[]>({
-    queryKey: ["/api/articles/search", query],
+    queryKey: ["/api/articles/search", { q: query }],
     enabled: query.length > 0,
   });
 
@@ -37,19 +37,24 @@ export function SearchBar({ className }: SearchBarProps) {
 
       {query.length > 0 && results && (
         <div className="absolute top-full mt-2 w-full bg-card border rounded-lg shadow-lg p-2 space-y-2 z-10">
-          {results.map((article) => (
-            <Button
-              key={article.id}
-              variant="ghost"
-              className="w-full justify-start text-left"
-              onClick={() => {
-                // Open article in a dialog or navigate to article page
-                setQuery("");
-              }}
-            >
-              {article.title}
-            </Button>
-          ))}
+          {results.length > 0 ? (
+            results.map((article) => (
+              <Button
+                key={article.id}
+                variant="ghost"
+                className="w-full justify-start text-left"
+                onClick={() => {
+                  setQuery("");
+                }}
+              >
+                {article.title}
+              </Button>
+            ))
+          ) : (
+            <div className="text-center py-2 text-muted-foreground">
+              No articles found
+            </div>
+          )}
         </div>
       )}
     </div>
