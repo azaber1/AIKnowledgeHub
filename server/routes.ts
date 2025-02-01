@@ -72,10 +72,24 @@ export function registerRoutes(app: Express): Server {
       const queryEmbedding = await getEmbedding(q);
       console.log('Generated embedding');
 
+      // Calculate cosine similarity and filter by a threshold
       const searchResults = await db.execute(sql`
-        SELECT id, title, content, metadata, created_at as "createdAt", updated_at as "updatedAt", author_id as "authorId"
-        FROM articles 
-        ORDER BY embedding <-> ${JSON.stringify(queryEmbedding)}::vector
+        WITH similarity_results AS (
+          SELECT 
+            id, 
+            title, 
+            content, 
+            metadata, 
+            created_at as "createdAt", 
+            updated_at as "updatedAt", 
+            author_id as "authorId",
+            1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+          FROM articles
+        )
+        SELECT *
+        FROM similarity_results
+        WHERE similarity > 0.3
+        ORDER BY similarity DESC
         LIMIT 5
       `);
 
