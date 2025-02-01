@@ -13,8 +13,13 @@ interface SearchBarProps {
 export function SearchBar({ className }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const { data: results, isLoading } = useQuery<SelectArticle[]>({
-    queryKey: ["/api/articles/search", { q: query }],
+    queryKey: ["/api/articles/search", query],
     enabled: query.length > 0,
+    queryFn: async () => {
+      const res = await fetch(`/api/articles/search?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error("Failed to search articles");
+      return res.json();
+    }
   });
 
   return (
