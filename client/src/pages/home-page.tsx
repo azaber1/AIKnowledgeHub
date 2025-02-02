@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { SearchBar } from "@/components/search-bar";
 import { ArticleCard } from "@/components/article-card";
 import { useAuth } from "@/hooks/use-auth";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LogOut } from "lucide-react";
+import { PlusCircle, LogOut, Loader2 } from "lucide-react";
 import type { SelectArticle } from "@db/schema";
 
 interface GroupedArticles {
@@ -13,6 +13,7 @@ interface GroupedArticles {
 
 export default function HomePage() {
   const { user, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
   const { data: articles, isLoading } = useQuery<SelectArticle[]>({ 
     queryKey: ["/api/articles"]
   });
@@ -26,6 +27,11 @@ export default function HomePage() {
     }
     groupedArticles[category].push(article);
   });
+
+  const handleLogout = async () => {
+    await logoutMutation.mutateAsync();
+    setLocation('/auth');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,10 +56,14 @@ export default function HomePage() {
                 </Link>
                 <Button 
                   variant="outline" 
-                  onClick={() => logoutMutation.mutate()}
+                  onClick={handleLogout}
                   disabled={logoutMutation.isPending}
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
+                  {logoutMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <LogOut className="w-4 h-4 mr-2" />
+                  )}
                   Logout
                 </Button>
               </div>

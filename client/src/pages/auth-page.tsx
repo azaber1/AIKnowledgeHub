@@ -17,16 +17,19 @@ import type { InsertUser } from "@db/schema";
 import { signInWithGoogle } from "@/lib/firebase";
 import { SiGoogle } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  if (user) {
-    setLocation("/");
-    return null;
-  }
+  // Redirect if logged in
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   const handleGoogleSignIn = async () => {
     try {
