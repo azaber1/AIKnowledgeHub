@@ -74,11 +74,16 @@ export function registerRoutes(app: Express): Server {
 
         return res.json(teamArticles);
       } else {
-        // In personal space, only show articles with no teamId
+        // In personal space, show articles where user is author and teamId is null
         const personalArticles = await db
           .select()
           .from(articles)
-          .where(eq(articles.teamId, null))
+          .where(
+            and(
+              eq(articles.authorId, req.user.id),
+              eq(articles.teamId, null)
+            )
+          )
           .orderBy(desc(articles.createdAt));
 
         return res.json(personalArticles);
@@ -266,13 +271,14 @@ export function registerRoutes(app: Express): Server {
 
         return res.json(teamArticles);
       } else {
-        // Search personal articles
+        // Search personal articles where user is author
         const personalArticles = await db
           .select()
           .from(articles)
           .where(
             and(
               searchCondition,
+              eq(articles.authorId, req.user.id),
               eq(articles.teamId, null)
             )
           )
