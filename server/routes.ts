@@ -41,26 +41,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/articles/:id", async (req, res) => {
-    const { id } = req.params;
-    try {
-      const [article] = await db
-        .select()
-        .from(articles)
-        .where(eq(articles.id, parseInt(id)))
-        .limit(1);
-
-      if (!article) {
-        return res.status(404).json({ message: "Article not found" });
-      }
-
-      res.json(article);
-    } catch (error) {
-      console.error('Error fetching article:', error);
-      res.status(500).json({ message: "Failed to fetch article" });
-    }
-  });
-
+  // Important: Put search route before the :id route to avoid path conflicts
   app.get("/api/articles/search", async (req, res) => {
     const { q } = req.query;
     if (!q || typeof q !== "string") {
@@ -87,6 +68,26 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error searching articles:', error);
       res.status(500).json({ message: "Failed to search articles" });
+    }
+  });
+
+  app.get("/api/articles/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const [article] = await db
+        .select()
+        .from(articles)
+        .where(eq(articles.id, parseInt(id)))
+        .limit(1);
+
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+
+      res.json(article);
+    } catch (error) {
+      console.error('Error fetching article:', error);
+      res.status(500).json({ message: "Failed to fetch article" });
     }
   });
 
