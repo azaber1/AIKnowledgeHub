@@ -15,8 +15,8 @@ const articleSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
   metadata: z.object({
-    category: z.string(),
-  }).optional(),
+    category: z.string().min(1, "Category is required"),
+  }),
 });
 
 type FormData = z.infer<typeof articleSchema>;
