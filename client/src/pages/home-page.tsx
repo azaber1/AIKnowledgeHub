@@ -4,7 +4,7 @@ import { ArticleCard } from "@/components/article-card";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, LogOut } from "lucide-react";
 import type { SelectArticle } from "@db/schema";
 
 interface GroupedArticles {
@@ -12,7 +12,7 @@ interface GroupedArticles {
 }
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { data: articles, isLoading } = useQuery<SelectArticle[]>({ 
     queryKey: ["/api/articles"]
   });
@@ -41,12 +41,22 @@ export default function HomePage() {
               </p>
             </div>
             {user && (
-              <Link href="/admin">
-                <Button className="flex items-center gap-2">
-                  <PlusCircle className="w-4 h-4" />
-                  Manage Articles
+              <div className="flex items-center gap-4">
+                <Link href="/admin">
+                  <Button className="flex items-center gap-2">
+                    <PlusCircle className="w-4 h-4" />
+                    Manage Articles
+                  </Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
                 </Button>
-              </Link>
+              </div>
             )}
           </div>
         </div>
