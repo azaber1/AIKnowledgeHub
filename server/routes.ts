@@ -209,9 +209,16 @@ export function registerRoutes(app: Express): Server {
         )
         .limit(5);
 
-      // If authenticated, filter by team
-      if (req.isAuthenticated() && req.query.teamId) {
-        query = query.where(eq(articles.teamId, parseInt(req.query.teamId as string)));
+      // If authenticated, filter by team or personal articles
+      if (req.isAuthenticated()) {
+        const teamId = req.query.teamId;
+        if (teamId) {
+          // Team articles
+          query = query.where(eq(articles.teamId, parseInt(teamId as string)));
+        } else {
+          // Personal articles
+          query = query.where(eq(articles.authorId, req.user.id));
+        }
       }
 
       const searchResults = await query;
