@@ -37,7 +37,12 @@ async function getUserByUsername(username: string) {
 }
 
 export function setupAuth(app: Express) {
-  const store = new PostgresSessionStore({ pool, createTableIfMissing: true });
+  const store = new PostgresSessionStore({ 
+    pool, 
+    createTableIfMissing: true,
+    tableName: 'user_sessions' // Explicitly name the session table
+  });
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID!,
     resave: false,
@@ -46,8 +51,9 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: app.get("env") === "production",
       sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    },
+    name: 'sid' // Set a specific session ID cookie name
   };
 
   app.use(session(sessionSettings));
@@ -68,7 +74,10 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
       const [user] = await db
@@ -117,14 +126,18 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(200).json(user);
+        // Save session before responding
+        req.session.save((err) => {
+          if (err) return next(err);
+          res.status(200).json(user);
+        });
       });
     })(req, res, next);
   });
@@ -132,7 +145,11 @@ export function setupAuth(app: Express) {
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      req.session.destroy((err) => {
+        if (err) return next(err);
+        res.clearCookie('sid');
+        res.sendStatus(200);
+      });
     });
   });
 

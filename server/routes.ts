@@ -43,56 +43,45 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/articles", async (req, res) => {
     try {
-      // If authenticated, filter by team or personal articles
-      if (req.isAuthenticated()) {
-        const teamId = req.query.teamId;
-
-        if (teamId) {
-          // First verify user is a member of this team
-          const [membership] = await db
-            .select()
-            .from(teamMembers)
-            .where(
-              and(
-                eq(teamMembers.teamId, parseInt(teamId as string)),
-                eq(teamMembers.userId, req.user.id)
-              )
-            );
-
-          if (!membership) {
-            return res.status(403).json({ message: "Not a member of this team" });
-          }
-
-          // Show all articles for this team ordered by creation date
-          const teamArticles = await db
-            .select({
-              id: articles.id,
-              title: articles.title,
-              content: articles.content,
-              metadata: articles.metadata,
-              createdAt: articles.createdAt,
-              updatedAt: articles.updatedAt,
-              authorId: articles.authorId,
-              teamId: articles.teamId,
-            })
-            .from(articles)
-            .where(eq(articles.teamId, parseInt(teamId as string)))
-            .orderBy(desc(articles.createdAt));
-
-          return res.json(teamArticles);
-        } else {
-          // In personal space, only show articles with no teamId
-          const personalArticles = await db
-            .select()
-            .from(articles)
-            .where(eq(articles.teamId, null))
-            .orderBy(desc(articles.createdAt));
-
-          return res.json(personalArticles);
-        }
-      } else {
-        // For unauthenticated users, only show public articles (if any)
+      if (!req.isAuthenticated()) {
         return res.json([]);
+      }
+
+      const teamId = req.query.teamId;
+
+      if (teamId) {
+        // First verify user is a member of this team
+        const [membership] = await db
+          .select()
+          .from(teamMembers)
+          .where(
+            and(
+              eq(teamMembers.teamId, parseInt(teamId as string)),
+              eq(teamMembers.userId, req.user.id)
+            )
+          );
+
+        if (!membership) {
+          return res.status(403).json({ message: "Not a member of this team" });
+        }
+
+        // Show all articles for this team ordered by creation date
+        const teamArticles = await db
+          .select()
+          .from(articles)
+          .where(eq(articles.teamId, parseInt(teamId as string)))
+          .orderBy(desc(articles.createdAt));
+
+        return res.json(teamArticles);
+      } else {
+        // In personal space, only show articles with no teamId
+        const personalArticles = await db
+          .select()
+          .from(articles)
+          .where(eq(articles.teamId, null))
+          .orderBy(desc(articles.createdAt));
+
+        return res.json(personalArticles);
       }
     } catch (error) {
       console.error('Error fetching articles:', error);
@@ -226,73 +215,71 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update the search endpoint with the same logic
+  // Search endpoint with similar team access logic
   app.get("/api/articles/search", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.json([]);
+    }
+
     const { q } = req.query;
     if (!q || typeof q !== "string") {
       return res.status(400).json({ message: "Search query (q) is required" });
     }
 
     try {
-      const searchTerm = `%${q}%`; // Add wildcards for partial matches
-
-      // Create the search condition
+      const searchTerm = `%${q}%`;
       const searchCondition = or(
         ilike(articles.title, searchTerm),
         ilike(articles.content, searchTerm)
       );
 
-      // If authenticated, filter by team or personal articles
-      if (req.isAuthenticated()) {
-        const teamId = req.query.teamId;
+      const teamId = req.query.teamId;
 
-        if (teamId) {
-          // First verify user is a member of this team
-          const [membership] = await db
-            .select()
-            .from(teamMembers)
-            .where(
-              and(
-                eq(teamMembers.teamId, parseInt(teamId as string)),
-                eq(teamMembers.userId, req.user.id)
-              )
-            );
-
-          if (!membership) {
-            return res.status(403).json({ message: "Not a member of this team" });
-          }
-
-          // Show all team articles that match the search
-          const searchResults = await db
-            .select()
-            .from(articles)
-            .where(
-              and(
-                searchCondition,
-                eq(articles.teamId, parseInt(teamId as string))
-              )
+      if (teamId) {
+        // Verify team membership
+        const [membership] = await db
+          .select()
+          .from(teamMembers)
+          .where(
+            and(
+              eq(teamMembers.teamId, parseInt(teamId as string)),
+              eq(teamMembers.userId, req.user.id)
             )
-            .limit(5);
+          );
 
-          res.json(searchResults);
-        } else {
-          // Show only personal articles that match the search
-          const searchResults = await db
-            .select()
-            .from(articles)
-            .where(
-              and(
-                searchCondition,
-                eq(articles.teamId, null)
-              )
-            )
-            .limit(5);
-
-          res.json(searchResults);
+        if (!membership) {
+          return res.status(403).json({ message: "Not a member of this team" });
         }
+
+        // Search team articles
+        const teamArticles = await db
+          .select()
+          .from(articles)
+          .where(
+            and(
+              searchCondition,
+              eq(articles.teamId, parseInt(teamId as string))
+            )
+          )
+          .orderBy(desc(articles.createdAt))
+          .limit(5);
+
+        return res.json(teamArticles);
       } else {
-        // For unauthenticated users, only show public articles (if any)
-        return res.json([]);
+        // Search personal articles
+        const personalArticles = await db
+          .select()
+          .from(articles)
+          .where(
+            and(
+              searchCondition,
+              eq(articles.teamId, null)
+            )
+          )
+          .orderBy(desc(articles.createdAt))
+          .limit(5);
+
+        return res.json(personalArticles);
       }
     } catch (error) {
       console.error('Error searching articles:', error);
