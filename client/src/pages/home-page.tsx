@@ -4,7 +4,7 @@ import { ArticleCard } from "@/components/article-card";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LogOut, Loader2 } from "lucide-react";
+import { PlusCircle, LogOut, Loader2, LogIn } from "lucide-react";
 import type { SelectArticle } from "@db/schema";
 
 interface GroupedArticles {
@@ -46,28 +46,37 @@ export default function HomePage() {
                 Find answers to your questions
               </p>
             </div>
-            {user && (
-              <div className="flex items-center gap-4">
-                <Link href="/admin">
-                  <Button className="flex items-center gap-2">
-                    <PlusCircle className="w-4 h-4" />
-                    Manage Articles
+            <div className="flex items-center gap-4">
+              {user ? (
+                <>
+                  <Link href="/admin">
+                    <Button className="flex items-center gap-2">
+                      <PlusCircle className="w-4 h-4" />
+                      Manage Articles
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                  >
+                    {logoutMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <LogOut className="w-4 h-4 mr-2" />
+                    )}
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <Link href="/auth">
+                  <Button>
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Login
                   </Button>
                 </Link>
-                <Button 
-                  variant="outline" 
-                  onClick={handleLogout}
-                  disabled={logoutMutation.isPending}
-                >
-                  {logoutMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <LogOut className="w-4 h-4 mr-2" />
-                  )}
-                  Logout
-                </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </header>
