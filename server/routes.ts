@@ -198,30 +198,35 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const searchTerm = `%${q}%`; // Add wildcards for partial matches
-      let query = db
-        .select()
-        .from(articles)
-        .where(
-          or(
-            ilike(articles.title, searchTerm),
-            ilike(articles.content, searchTerm)
-          )
-        )
-        .limit(5);
 
-      // If authenticated, filter by team or personal articles
+      // Start with the search condition
+      const searchCondition = or(
+        ilike(articles.title, searchTerm),
+        ilike(articles.content, searchTerm)
+      );
+
+      // Add ownership condition if authenticated
+      let ownershipCondition;
       if (req.isAuthenticated()) {
         const teamId = req.query.teamId;
         if (teamId) {
-          // Team articles
-          query = query.where(eq(articles.teamId, parseInt(teamId as string)));
+          ownershipCondition = eq(articles.teamId, parseInt(teamId as string));
         } else {
-          // Personal articles
-          query = query.where(eq(articles.authorId, req.user.id));
+          ownershipCondition = eq(articles.authorId, req.user.id);
         }
       }
 
-      const searchResults = await query;
+      // Combine conditions if authenticated
+      const whereCondition = ownershipCondition
+        ? and(searchCondition, ownershipCondition)
+        : searchCondition;
+
+      const searchResults = await db
+        .select()
+        .from(articles)
+        .where(whereCondition)
+        .limit(5);
+
       res.json(searchResults);
     } catch (error) {
       console.error('Error searching articles:', error);
