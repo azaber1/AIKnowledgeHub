@@ -225,11 +225,6 @@ export function registerRoutes(app: Express): Server {
         ilike(articles.content, searchTerm)
       );
 
-      let query = db
-        .select()
-        .from(articles)
-        .where(searchCondition);
-
       // If authenticated, filter by team or personal articles
       if (req.isAuthenticated()) {
         const teamId = req.query.teamId;
@@ -251,18 +246,37 @@ export function registerRoutes(app: Express): Server {
           }
 
           // Show team articles that match the search
-          query = query.where(eq(articles.teamId, parseInt(teamId as string)));
+          const searchResults = await db
+            .select()
+            .from(articles)
+            .where(
+              and(
+                searchCondition,
+                eq(articles.teamId, parseInt(teamId as string))
+              )
+            )
+            .limit(5);
+
+          res.json(searchResults);
         } else {
           // Show only personal articles that match the search
-          query = query.where(eq(articles.authorId, req.user.id));
+          const searchResults = await db
+            .select()
+            .from(articles)
+            .where(
+              and(
+                searchCondition,
+                eq(articles.authorId, req.user.id)
+              )
+            )
+            .limit(5);
+
+          res.json(searchResults);
         }
       } else {
         // For unauthenticated users, only show public articles (if any)
         return res.json([]);
       }
-
-      const searchResults = await query.limit(5);
-      res.json(searchResults);
     } catch (error) {
       console.error('Error searching articles:', error);
       res.status(500).json({ message: "Failed to search articles" });
