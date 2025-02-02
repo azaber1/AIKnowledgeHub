@@ -43,8 +43,6 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/articles", async (req, res) => {
     try {
-      let query = db.select().from(articles);
-
       // If authenticated, filter by team or personal articles
       if (req.isAuthenticated()) {
         const teamId = req.query.teamId;
@@ -65,19 +63,31 @@ export function registerRoutes(app: Express): Server {
             return res.status(403).json({ message: "Not a member of this team" });
           }
 
-          // Show team articles
-          query = query.where(eq(articles.teamId, parseInt(teamId as string)));
+          // Show all articles for this team
+          const teamArticles = await db
+            .select()
+            .from(articles)
+            .where(eq(articles.teamId, parseInt(teamId as string)));
+
+          res.json(teamArticles);
         } else {
-          // Show only personal articles (where user is author)
-          query = query.where(eq(articles.authorId, req.user.id));
+          // Show only personal articles (where user is author and teamId is null)
+          const personalArticles = await db
+            .select()
+            .from(articles)
+            .where(
+              and(
+                eq(articles.authorId, req.user.id),
+                eq(articles.teamId, null)
+              )
+            );
+
+          res.json(personalArticles);
         }
       } else {
         // For unauthenticated users, only show public articles (if any)
         return res.json([]);
       }
-
-      const allArticles = await query;
-      res.json(allArticles);
     } catch (error) {
       console.error('Error fetching articles:', error);
       res.status(500).json({ message: "Failed to fetch articles" });
@@ -210,6 +220,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+    // Update the search endpoint to match the same team access logic
   app.get("/api/articles/search", async (req, res) => {
     const { q } = req.query;
     if (!q || typeof q !== "string") {
@@ -219,7 +230,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const searchTerm = `%${q}%`; // Add wildcards for partial matches
 
-      // Start with the search condition
+      // Create the search condition
       const searchCondition = or(
         ilike(articles.title, searchTerm),
         ilike(articles.content, searchTerm)
@@ -266,7 +277,8 @@ export function registerRoutes(app: Express): Server {
             .where(
               and(
                 searchCondition,
-                eq(articles.authorId, req.user.id)
+                eq(articles.authorId, req.user.id),
+                eq(articles.teamId, null)
               )
             )
             .limit(5);
