@@ -25,17 +25,22 @@ export default function AdminDashboard() {
     }
   };
 
-  const { data: articles, isLoading } = useQuery<SelectArticle[]>({
+  const { data: articles, isLoading, error } = useQuery<SelectArticle[]>({
     queryKey: ["/api/articles", selectedTeamId],
     queryFn: async () => {
       const url = new URL("/api/articles", window.location.origin);
-      if (selectedTeamId) {
+      if (selectedTeamId !== null) {
         url.searchParams.set("teamId", selectedTeamId.toString());
       }
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch articles");
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to fetch articles");
+      }
       return res.json();
     },
+    staleTime: 1000, // Consider data fresh for 1 second
+    cacheTime: 5 * 60 * 1000, // Keep data in cache for 5 minutes
   });
 
   return (
@@ -72,11 +77,20 @@ export default function AdminDashboard() {
             Array(3).fill(0).map((_, i) => (
               <div key={i} className="h-24 rounded-lg bg-muted animate-pulse" />
             ))
+          ) : error ? (
+            <div className="text-center py-12 bg-destructive/10 rounded-lg">
+              <h3 className="text-lg font-medium mb-2">Error loading articles</h3>
+              <p className="text-muted-foreground">
+                {error instanceof Error ? error.message : "Please try again"}
+              </p>
+            </div>
           ) : articles?.length === 0 ? (
             <div className="text-center py-12 bg-muted/10 rounded-lg border-2 border-dashed">
               <h3 className="text-lg font-medium mb-2">No articles yet</h3>
               <p className="text-muted-foreground mb-4">
-                Start by creating your first article
+                {selectedTeamId 
+                  ? "Start by creating your first team article"
+                  : "Start by creating your first personal article"}
               </p>
               <Button onClick={() => setIsCreateOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />

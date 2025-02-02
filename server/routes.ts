@@ -306,7 +306,9 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/articles/:id", async (req, res) => {
     const { id } = req.params;
+
     try {
+      // First get the article
       const [article] = await db
         .select()
         .from(articles)
@@ -315,6 +317,32 @@ export function registerRoutes(app: Express): Server {
 
       if (!article) {
         return res.status(404).json({ message: "Article not found" });
+      }
+
+      // If article belongs to a team, verify user's team membership
+      if (article.teamId) {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const [membership] = await db
+          .select()
+          .from(teamMembers)
+          .where(
+            and(
+              eq(teamMembers.teamId, article.teamId),
+              eq(teamMembers.userId, req.user.id)
+            )
+          );
+
+        if (!membership) {
+          return res.status(403).json({ message: "Not authorized to view this article" });
+        }
+      } else {
+        // For personal articles, only the author can view them
+        if (!req.isAuthenticated() || article.authorId !== req.user.id) {
+          return res.status(403).json({ message: "Not authorized to view this article" });
+        }
       }
 
       res.json(article);
