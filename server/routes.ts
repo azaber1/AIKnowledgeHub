@@ -250,10 +250,10 @@ export function registerRoutes(app: Express): Server {
             return res.status(403).json({ message: "Not a member of this team" });
           }
 
-          // Show team articles
+          // Show team articles that match the search
           query = query.where(eq(articles.teamId, parseInt(teamId as string)));
         } else {
-          // Show only personal articles (where user is author)
+          // Show only personal articles that match the search
           query = query.where(eq(articles.authorId, req.user.id));
         }
       } else {
