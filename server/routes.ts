@@ -74,16 +74,11 @@ export function registerRoutes(app: Express): Server {
 
         return res.json(teamArticles);
       } else {
-        // In personal space, show articles where user is author and teamId is null
+        // In personal space, show all articles that have no team
         const personalArticles = await db
           .select()
           .from(articles)
-          .where(
-            and(
-              eq(articles.authorId, req.user.id),
-              eq(articles.teamId, null)
-            )
-          )
+          .where(eq(articles.teamId, null))
           .orderBy(desc(articles.createdAt));
 
         return res.json(personalArticles);
@@ -220,7 +215,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Search endpoint with similar team access logic
+  // Update search endpoint with similar logic
   app.get("/api/articles/search", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.json([]);
@@ -271,14 +266,13 @@ export function registerRoutes(app: Express): Server {
 
         return res.json(teamArticles);
       } else {
-        // Search personal articles where user is author
+        // Search all personal articles (no team)
         const personalArticles = await db
           .select()
           .from(articles)
           .where(
             and(
               searchCondition,
-              eq(articles.authorId, req.user.id),
               eq(articles.teamId, null)
             )
           )
