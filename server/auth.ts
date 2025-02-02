@@ -39,8 +39,8 @@ async function getUserByUsername(username: string) {
 export function setupAuth(app: Express) {
   const store = new PostgresSessionStore({ 
     pool, 
+    tableName: 'user_sessions', // Explicitly name the session table
     createTableIfMissing: true,
-    tableName: 'user_sessions' // Explicitly name the session table
   });
 
   const sessionSettings: session.SessionOptions = {
