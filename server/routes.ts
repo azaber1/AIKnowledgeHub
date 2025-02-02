@@ -48,7 +48,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const teamId = req.query.teamId;
-      let articles;
+      let result;
 
       if (teamId) {
         // First verify user is a member of this team
@@ -67,14 +67,14 @@ export function registerRoutes(app: Express): Server {
         }
 
         // Get team articles
-        articles = await db
+        result = await db
           .select()
           .from(articles)
           .where(eq(articles.teamId, parseInt(teamId as string)))
           .orderBy(desc(articles.createdAt));
       } else {
         // In personal space, show all articles without a team
-        articles = await db
+        result = await db
           .select()
           .from(articles)
           .where(eq(articles.teamId, null))
@@ -82,9 +82,9 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Add debug logging
-      console.log('Fetched articles:', articles?.length || 0, 'articles for user:', req.user.id, 'teamId:', teamId || 'personal');
+      console.log('Fetched articles:', result?.length || 0, 'articles for user:', req.user.id, 'teamId:', teamId || 'personal');
 
-      return res.json(articles || []);
+      return res.json(result || []);
     } catch (error) {
       console.error('Error fetching articles:', error);
       res.status(500).json({ message: "Failed to fetch articles" });
