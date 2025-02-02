@@ -36,7 +36,7 @@ export default function AuthPage() {
   // Redirect if logged in
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      setLocation("/home");
     }
   }, [user, setLocation]);
 

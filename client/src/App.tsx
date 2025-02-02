@@ -7,15 +7,17 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import AdminDashboard from "@/pages/admin-dashboard";
 import ArticlePage from "@/pages/article-page";
+import LandingPage from "@/pages/landing-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={HomePage} />
+      <Route path="/" component={LandingPage} />
       <Route path="/auth" component={AuthPage} />
-      <Route path="/article/:id" component={ArticlePage} />
+      <ProtectedRoute path="/home" component={HomePage} />
+      <ProtectedRoute path="/article/:id" component={ArticlePage} />
       <ProtectedRoute path="/admin" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
