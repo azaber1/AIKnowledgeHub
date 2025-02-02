@@ -1,12 +1,13 @@
-import { useQuery,  } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { SearchBar } from "@/components/search-bar";
 import { ArticleCard } from "@/components/article-card";
+import { TeamManagement } from "@/components/team-management";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, LogOut, Loader2, LogIn } from "lucide-react";
 import type { SelectArticle } from "@db/schema";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface GroupedArticles {
   [key: string]: SelectArticle[];
@@ -15,8 +16,19 @@ interface GroupedArticles {
 export default function HomePage() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
-  const { data: articles, isLoading } = useQuery<SelectArticle[]>({ 
-    queryKey: ["/api/articles"]
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+
+  const { data: articles, isLoading } = useQuery<SelectArticle[]>({
+    queryKey: ["/api/articles", selectedTeamId],
+    queryFn: async () => {
+      const url = new URL("/api/articles", window.location.origin);
+      if (selectedTeamId) {
+        url.searchParams.set("teamId", selectedTeamId.toString());
+      }
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch articles");
+      return res.json();
+    },
   });
 
   // Group articles by category
@@ -49,7 +61,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Knowledge Base
@@ -89,6 +101,13 @@ export default function HomePage() {
                 </Link>
               )}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <TeamManagement
+              selectedTeamId={selectedTeamId}
+              onTeamSelect={setSelectedTeamId}
+            />
           </div>
         </div>
       </header>

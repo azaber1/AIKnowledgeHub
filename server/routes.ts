@@ -2,26 +2,162 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { articles } from "@db/schema";
-import { eq, ilike, or } from "drizzle-orm";
+import { articles, teams, teamMembers } from "@db/schema";
+import { eq, ilike, or, and } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
-  // Protected API routes
+  // Team Management Routes
+  app.post("/api/teams", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: "Team name is required" });
+    }
+
+    try {
+      // Create team
+      const [team] = await db.insert(teams)
+        .values({
+          name,
+          ownerId: req.user.id,
+        })
+        .returning();
+
+      // Add owner as team member
+      await db.insert(teamMembers)
+        .values({
+          teamId: team.id,
+          userId: req.user.id,
+          role: 'owner',
+        });
+
+      res.status(201).json(team);
+    } catch (error) {
+      console.error('Error creating team:', error);
+      res.status(500).json({ message: "Failed to create team" });
+    }
+  });
+
+  app.get("/api/teams", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const userTeams = await db
+        .select({
+          team: teams,
+          role: teamMembers.role,
+        })
+        .from(teamMembers)
+        .innerJoin(teams, eq(teams.id, teamMembers.teamId))
+        .where(eq(teamMembers.userId, req.user.id));
+
+      res.json(userTeams);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      res.status(500).json({ message: "Failed to fetch teams" });
+    }
+  });
+
+  app.post("/api/teams/:teamId/members", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { teamId } = req.params;
+    const { username } = req.body;
+
+    try {
+      // Check if user is team owner
+      const [membership] = await db
+        .select()
+        .from(teamMembers)
+        .where(
+          and(
+            eq(teamMembers.teamId, parseInt(teamId)),
+            eq(teamMembers.userId, req.user.id),
+            eq(teamMembers.role, 'owner')
+          )
+        );
+
+      if (!membership) {
+        return res.status(403).json({ message: "Only team owners can add members" });
+      }
+
+      // Find user by username
+      const [userToAdd] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username));
+
+      if (!userToAdd) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user is already a member
+      const [existingMembership] = await db
+        .select()
+        .from(teamMembers)
+        .where(
+          and(
+            eq(teamMembers.teamId, parseInt(teamId)),
+            eq(teamMembers.userId, userToAdd.id)
+          )
+        );
+
+      if (existingMembership) {
+        return res.status(400).json({ message: "User is already a team member" });
+      }
+
+      // Add new team member
+      const [newMember] = await db
+        .insert(teamMembers)
+        .values({
+          teamId: parseInt(teamId),
+          userId: userToAdd.id,
+          role: 'member',
+        })
+        .returning();
+
+      res.status(201).json(newMember);
+    } catch (error) {
+      console.error('Error adding team member:', error);
+      res.status(500).json({ message: "Failed to add team member" });
+    }
+  });
+
+  // Existing routes
   app.post("/api/articles", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const { title, content } = req.body;
+    const { title, content, teamId } = req.body;
     if (!title || !content) {
       return res.status(400).json({ message: "Title and content are required" });
     }
 
     try {
+      // If teamId is provided, verify user is a team member
+      if (teamId) {
+        const [membership] = await db
+          .select()
+          .from(teamMembers)
+          .where(
+            and(
+              eq(teamMembers.teamId, teamId),
+              eq(teamMembers.userId, req.user.id)
+            )
+          );
+
+        if (!membership) {
+          return res.status(403).json({ message: "Not a team member" });
+        }
+      }
+
       const [article] = await db.insert(articles).values({
         title,
         content,
         authorId: req.user.id,
+        teamId: teamId || null,
       }).returning();
 
       res.json(article);
