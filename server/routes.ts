@@ -68,7 +68,7 @@ export function registerRoutes(app: Express): Server {
           // Show team articles
           query = query.where(eq(articles.teamId, parseInt(teamId as string)));
         } else {
-          // Show only personal articles
+          // Show only personal articles (where user is author)
           query = query.where(eq(articles.authorId, req.user.id));
         }
       } else {
@@ -210,7 +210,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Important: Put search route before the :id route to avoid path conflicts
+  // Update the search endpoint to match the same logic
   app.get("/api/articles/search", async (req, res) => {
     const { q } = req.query;
     if (!q || typeof q !== "string") {
@@ -249,11 +249,8 @@ export function registerRoutes(app: Express): Server {
           // Only show articles from this specific team
           ownershipCondition = eq(articles.teamId, parseInt(teamId as string));
         } else {
-          // In personal space, only show personal articles (where teamId is null)
-          ownershipCondition = and(
-            eq(articles.authorId, req.user.id),
-            eq(articles.teamId, null)
-          );
+          // In personal space, show all articles where user is author
+          ownershipCondition = eq(articles.authorId, req.user.id);
         }
       }
 
