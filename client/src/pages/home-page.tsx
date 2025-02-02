@@ -4,6 +4,7 @@ import { ArticleCard } from "@/components/article-card";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 import type { SelectArticle } from "@db/schema";
 
 interface GroupedArticles {
@@ -28,7 +29,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-white border-b">
+      <header className="bg-white border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-6">
           <div className="flex justify-between items-center">
             <div>
@@ -41,7 +42,10 @@ export default function HomePage() {
             </div>
             {user && (
               <Link href="/admin">
-                <Button variant="outline">Admin Dashboard</Button>
+                <Button className="flex items-center gap-2">
+                  <PlusCircle className="w-4 h-4" />
+                  Manage Articles
+                </Button>
               </Link>
             )}
           </div>
