@@ -151,7 +151,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/articles", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const { title, content, teamId } = req.body;
+    const { title, content, metadata, teamId } = req.body;
     if (!title || !content) {
       return res.status(400).json({ message: "Title and content are required" });
     }
@@ -177,6 +177,7 @@ export function registerRoutes(app: Express): Server {
       const [article] = await db.insert(articles).values({
         title,
         content,
+        metadata,
         authorId: req.user.id,
         teamId: teamId || null,
       }).returning();
@@ -245,7 +246,7 @@ export function registerRoutes(app: Express): Server {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const { id } = req.params;
-    const { title, content } = req.body;
+    const { title, content, metadata } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({ message: "Title and content are required" });
@@ -256,6 +257,7 @@ export function registerRoutes(app: Express): Server {
         .set({ 
           title, 
           content,
+          metadata,
           updatedAt: new Date() 
         })
         .where(eq(articles.id, parseInt(id)))
