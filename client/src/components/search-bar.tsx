@@ -8,15 +8,21 @@ import type { SelectArticle } from "@db/schema";
 
 interface SearchBarProps {
   className?: string;
+  teamId?: number | null;
 }
 
-export function SearchBar({ className }: SearchBarProps) {
+export function SearchBar({ className, teamId }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const { data: results, isLoading } = useQuery<SelectArticle[]>({
-    queryKey: ["/api/articles/search", query],
+    queryKey: ["/api/articles/search", query, teamId],
     enabled: query.length > 0,
     queryFn: async () => {
-      const res = await fetch(`/api/articles/search?q=${encodeURIComponent(query)}`);
+      const url = new URL("/api/articles/search", window.location.origin);
+      url.searchParams.set("q", query);
+      if (teamId) {
+        url.searchParams.set("teamId", teamId.toString());
+      }
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search articles");
       return res.json();
     }

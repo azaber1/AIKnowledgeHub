@@ -134,7 +134,7 @@ export default function HomePage() {
             <p className="text-lg text-gray-600 mb-8">
               Search our knowledge base for answers
             </p>
-            <SearchBar className="max-w-xl mx-auto" />
+            <SearchBar className="max-w-xl mx-auto" teamId={selectedTeamId} />
           </div>
         </div>
       </div>

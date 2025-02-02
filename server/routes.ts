@@ -225,10 +225,15 @@ export function registerRoutes(app: Express): Server {
         ilike(articles.content, searchTerm)
       );
 
-      // Add ownership condition if authenticated
-      let ownershipCondition;
+      let query = db
+        .select()
+        .from(articles)
+        .where(searchCondition);
+
+      // If authenticated, filter by team or personal articles
       if (req.isAuthenticated()) {
         const teamId = req.query.teamId;
+
         if (teamId) {
           // First verify user is a member of this team
           const [membership] = await db
@@ -245,28 +250,18 @@ export function registerRoutes(app: Express): Server {
             return res.status(403).json({ message: "Not a member of this team" });
           }
 
-          // Only show articles from this specific team
-          ownershipCondition = eq(articles.teamId, parseInt(teamId as string));
+          // Show team articles
+          query = query.where(eq(articles.teamId, parseInt(teamId as string)));
         } else {
-          // In personal space, show only personal articles (where teamId is null)
-          ownershipCondition = and(
-            eq(articles.authorId, req.user.id),
-            eq(articles.teamId, null)
-          );
+          // Show only personal articles (where user is author)
+          query = query.where(eq(articles.authorId, req.user.id));
         }
+      } else {
+        // For unauthenticated users, only show public articles (if any)
+        return res.json([]);
       }
 
-      // Combine conditions
-      const whereCondition = ownershipCondition
-        ? and(searchCondition, ownershipCondition)
-        : searchCondition;
-
-      const searchResults = await db
-        .select()
-        .from(articles)
-        .where(whereCondition)
-        .limit(5);
-
+      const searchResults = await query.limit(5);
       res.json(searchResults);
     } catch (error) {
       console.error('Error searching articles:', error);
