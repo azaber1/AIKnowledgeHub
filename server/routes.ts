@@ -71,16 +71,11 @@ export function registerRoutes(app: Express): Server {
 
           res.json(teamArticles);
         } else {
-          // Show only personal articles (where user is author and teamId is null)
+          // Show only personal articles (where teamId is null)
           const personalArticles = await db
             .select()
             .from(articles)
-            .where(
-              and(
-                eq(articles.authorId, req.user.id),
-                eq(articles.teamId, null)
-              )
-            );
+            .where(eq(articles.teamId, null));
 
           res.json(personalArticles);
         }
@@ -220,7 +215,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-    // Update the search endpoint to match the same team access logic
+  // Update the search endpoint with the same logic
   app.get("/api/articles/search", async (req, res) => {
     const { q } = req.query;
     if (!q || typeof q !== "string") {
@@ -256,7 +251,7 @@ export function registerRoutes(app: Express): Server {
             return res.status(403).json({ message: "Not a member of this team" });
           }
 
-          // Show team articles that match the search
+          // Show all team articles that match the search
           const searchResults = await db
             .select()
             .from(articles)
@@ -277,7 +272,6 @@ export function registerRoutes(app: Express): Server {
             .where(
               and(
                 searchCondition,
-                eq(articles.authorId, req.user.id),
                 eq(articles.teamId, null)
               )
             )
