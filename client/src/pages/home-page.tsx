@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery,  } from "@tanstack/react-query";
 import { SearchBar } from "@/components/search-bar";
 import { ArticleCard } from "@/components/article-card";
 import { useAuth } from "@/hooks/use-auth";
@@ -6,6 +6,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, LogOut, Loader2, LogIn } from "lucide-react";
 import type { SelectArticle } from "@db/schema";
+import { useEffect } from "react";
 
 interface GroupedArticles {
   [key: string]: SelectArticle[];
@@ -29,9 +30,20 @@ export default function HomePage() {
   });
 
   const handleLogout = async () => {
-    await logoutMutation.mutateAsync();
-    setLocation('/auth');
+    try {
+      await logoutMutation.mutateAsync();
+      setLocation('/auth');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
+
+  // If not logged in, redirect to auth page
+  useEffect(() => {
+    if (!user && !logoutMutation.isPending) {
+      setLocation('/auth');
+    }
+  }, [user, logoutMutation.isPending, setLocation]);
 
   return (
     <div className="min-h-screen bg-background">
