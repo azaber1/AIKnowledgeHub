@@ -4,7 +4,6 @@ import { setupAuth } from "./auth";
 import { db } from "@db";
 import { articles } from "@db/schema";
 import { eq, ilike, or } from "drizzle-orm";
-import { users } from "@db/schema";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -133,30 +132,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error deleting article:', error);
       res.status(500).json({ message: "Failed to delete article" });
-    }
-  });
-  
-  app.get("/api/admin/users", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const allUsers = await db.select().from(users);
-      res.json(allUsers);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
-
-  app.get("/api/admin/articles", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const allArticles = await db.select().from(articles);
-      res.json(allArticles);
-    } catch (error) {
-      console.error('Error fetching articles:', error);
-      res.status(500).json({ message: "Failed to fetch articles" });
     }
   });
 

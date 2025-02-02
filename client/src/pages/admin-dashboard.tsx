@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArticleEditor } from "@/components/article-editor";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Database } from "lucide-react";
+import { Plus, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "wouter";
@@ -29,18 +29,10 @@ export default function AdminDashboard() {
               Create and manage your knowledge base articles
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/admin/database">
-              <Button variant="outline">
-                <Database className="w-4 h-4 mr-2" />
-                View Database
-              </Button>
-            </Link>
-            <Button onClick={() => setIsCreateOpen(true)} size="lg">
-              <Plus className="w-5 h-5 mr-2" />
-              New Article
-            </Button>
-          </div>
+          <Button onClick={() => setIsCreateOpen(true)} size="lg">
+            <Plus className="w-5 h-5 mr-2" />
+            New Article
+          </Button>
         </div>
 
         <div className="space-y-4">
