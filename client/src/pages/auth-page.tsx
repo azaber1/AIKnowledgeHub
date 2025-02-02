@@ -2,7 +2,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   Card,
   CardContent,
@@ -14,15 +13,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import type { InsertUser } from "@db/schema";
-import { signInWithGoogle } from "@/lib/firebase";
-import { SiGoogle } from "react-icons/si";
-import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
 
   // Redirect if logged in
   useEffect(() => {
@@ -30,19 +25,6 @@ export default function AuthPage() {
       setLocation("/");
     }
   }, [user, setLocation]);
-
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithGoogle();
-      setLocation("/");
-    } catch (error) {
-      toast({
-        title: "Failed to sign in with Google",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="min-h-screen grid md:grid-cols-2">
@@ -55,26 +37,6 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button
-              variant="outline"
-              className="w-full mb-6"
-              onClick={handleGoogleSignIn}
-            >
-              <SiGoogle className="w-4 h-4 mr-2" />
-              Continue with Google
-            </Button>
-
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <Separator />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="login">Login</TabsTrigger>
