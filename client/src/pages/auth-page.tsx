@@ -9,11 +9,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import type { InsertUser } from "@db/schema";
 import { useEffect } from "react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const registerSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
+});
+
+type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -48,7 +61,14 @@ export default function AuthPage() {
               </TabsContent>
 
               <TabsContent value="register">
-                <RegisterForm onSubmit={(data) => registerMutation.mutate(data)} />
+                <div className="mb-4">
+                  <h2 className="text-2xl font-semibold">Join Our Knowledge Hub</h2>
+                  <p className="text-muted-foreground">Create your account to start sharing knowledge</p>
+                </div>
+                <RegisterForm onSubmit={(data) => {
+                  const { confirmPassword: _, ...userData } = data;
+                  registerMutation.mutate(userData);
+                }} />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -83,6 +103,7 @@ function LoginForm({ onSubmit }: { onSubmit: (data: InsertUser) => void }) {
               <FormControl>
                 <Input {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -95,6 +116,7 @@ function LoginForm({ onSubmit }: { onSubmit: (data: InsertUser) => void }) {
               <FormControl>
                 <Input type="password" {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -106,8 +128,10 @@ function LoginForm({ onSubmit }: { onSubmit: (data: InsertUser) => void }) {
   );
 }
 
-function RegisterForm({ onSubmit }: { onSubmit: (data: InsertUser) => void }) {
-  const form = useForm<InsertUser>();
+function RegisterForm({ onSubmit }: { onSubmit: (data: RegisterFormData) => void }) {
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema)
+  });
 
   return (
     <Form {...form}>
@@ -121,6 +145,7 @@ function RegisterForm({ onSubmit }: { onSubmit: (data: InsertUser) => void }) {
               <FormControl>
                 <Input {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -133,11 +158,25 @@ function RegisterForm({ onSubmit }: { onSubmit: (data: InsertUser) => void }) {
               <FormControl>
                 <Input type="password" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirm Password</FormLabel>
+              <FormControl>
+                <Input type="password" {...field} />
+              </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
         <Button type="submit" className="w-full">
-          Register
+          Create Account
         </Button>
       </form>
     </Form>
