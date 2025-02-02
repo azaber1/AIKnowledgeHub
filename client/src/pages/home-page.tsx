@@ -16,7 +16,10 @@ interface GroupedArticles {
 export default function HomePage() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
-  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(() => {
+    const stored = localStorage.getItem('selectedTeamId');
+    return stored ? Number(stored) : null;
+  });
 
   const { data: articles, isLoading } = useQuery<SelectArticle[]>({
     queryKey: ["/api/articles", selectedTeamId],
@@ -56,6 +59,16 @@ export default function HomePage() {
       setLocation('/auth');
     }
   }, [user, logoutMutation.isPending, setLocation]);
+
+    // Update localStorage when team changes
+  const handleTeamSelect = (teamId: number | null) => {
+    setSelectedTeamId(teamId);
+    if (teamId === null) {
+      localStorage.removeItem('selectedTeamId');
+    } else {
+      localStorage.setItem('selectedTeamId', teamId.toString());
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,7 +119,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <TeamManagement
               selectedTeamId={selectedTeamId}
-              onTeamSelect={setSelectedTeamId}
+              onTeamSelect={handleTeamSelect}
             />
           </div>
         </div>

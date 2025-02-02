@@ -10,7 +10,20 @@ import type { SelectArticle } from "@db/schema";
 
 export default function AdminDashboard() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(() => {
+    const stored = localStorage.getItem('selectedTeamId');
+    return stored ? Number(stored) : null;
+  });
+
+  // Update localStorage when team changes
+  const handleTeamSelect = (teamId: number | null) => {
+    setSelectedTeamId(teamId);
+    if (teamId === null) {
+      localStorage.removeItem('selectedTeamId');
+    } else {
+      localStorage.setItem('selectedTeamId', teamId.toString());
+    }
+  };
 
   const { data: articles, isLoading } = useQuery<SelectArticle[]>({
     queryKey: ["/api/articles", selectedTeamId],
@@ -50,7 +63,7 @@ export default function AdminDashboard() {
         <div className="mb-6">
           <TeamManagement
             selectedTeamId={selectedTeamId}
-            onTeamSelect={setSelectedTeamId}
+            onTeamSelect={handleTeamSelect}
           />
         </div>
 
