@@ -3,11 +3,23 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { SelectArticle } from "@db/schema";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const articleSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(1, "Content is required"),
+  metadata: z.object({
+    category: z.string(),
+  }).optional(),
+});
+
+type FormData = z.infer<typeof articleSchema>;
 
 interface ArticleEditorProps {
   article?: SelectArticle;
@@ -18,34 +30,53 @@ interface ArticleEditorProps {
 export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const form = useForm({
+  const form = useForm<FormData>({
+    resolver: zodResolver(articleSchema),
     defaultValues: article || {
       title: "",
       content: "",
+      metadata: {
+        category: "Getting Started"
+      }
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Partial<SelectArticle>) => {
+    mutationFn: async (data: FormData) => {
       const res = await apiRequest("POST", "/api/articles", data);
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
-      toast({ title: "Article created" });
+      toast({ title: "Article created successfully" });
+      form.reset();
       onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to create article", 
+        description: error.message,
+        variant: "destructive"
+      });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: Partial<SelectArticle>) => {
+    mutationFn: async (data: FormData) => {
       const res = await apiRequest("PUT", `/api/articles/${article?.id}`, data);
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
-      toast({ title: "Article updated" });
+      toast({ title: "Article updated successfully" });
       onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to update article", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -55,12 +86,19 @@ export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
-      toast({ title: "Article deleted" });
+      toast({ title: "Article deleted successfully" });
       onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to delete article", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
-  const onSubmit = (data: Partial<SelectArticle>) => {
+  const onSubmit = (data: FormData) => {
     if (isCreate) {
       createMutation.mutate(data);
     } else {
@@ -78,8 +116,9 @@ export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorPro
             <FormItem>
               <FormLabel>Title</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="Enter article title" />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -90,8 +129,26 @@ export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorPro
             <FormItem>
               <FormLabel>Content</FormLabel>
               <FormControl>
-                <Textarea {...field} className="min-h-[200px]" />
+                <Textarea 
+                  {...field} 
+                  className="min-h-[200px]" 
+                  placeholder="Write your article content here..."
+                />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="metadata.category"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Category</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Enter category" />
+              </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -108,14 +165,18 @@ export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorPro
             {(createMutation.isPending || updateMutation.isPending) && (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             )}
-            {isCreate ? "Create" : "Update"}
+            {isCreate ? "Create Article" : "Update Article"}
           </Button>
 
           {!isCreate && (
             <Button
               type="button"
               variant="destructive"
-              onClick={() => deleteMutation.mutate()}
+              onClick={() => {
+                if (window.confirm("Are you sure you want to delete this article?")) {
+                  deleteMutation.mutate();
+                }
+              }}
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? (
