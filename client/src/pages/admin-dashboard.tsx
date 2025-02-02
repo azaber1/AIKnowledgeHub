@@ -18,10 +18,10 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <Link href="/">
+            <Link href="/home">
               <Button variant="ghost" className="mb-4">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+                Back to Knowledge Base
               </Button>
             </Link>
             <h1 className="text-4xl font-bold">Article Management</h1>

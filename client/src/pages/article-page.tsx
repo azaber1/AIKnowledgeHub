@@ -34,10 +34,10 @@ export default function ArticlePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-2xl font-bold mb-4">Article not found</h1>
-          <Link href="/">
+          <Link href="/home">
             <Button>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
+              Back to Knowledge Base
             </Button>
           </Link>
         </div>
@@ -48,10 +48,10 @@ export default function ArticlePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
-        <Link href="/">
+        <Link href="/home">
           <Button variant="ghost" className="mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Articles
+            Back to Knowledge Base
           </Button>
         </Link>
 
