@@ -37,10 +37,12 @@ async function getUserByUsername(username: string) {
 }
 
 export function setupAuth(app: Express) {
+  // Initialize session store with explicit configuration
   const store = new PostgresSessionStore({ 
-    pool, 
-    tableName: 'user_sessions', // Explicitly name the session table
+    pool,
+    tableName: 'user_sessions',
     createTableIfMissing: true,
+    pruneSessionInterval: 60 * 15 // Prune expired sessions every 15 minutes
   });
 
   const sessionSettings: session.SessionOptions = {
@@ -51,9 +53,11 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: app.get("env") === "production",
       sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true
     },
-    name: 'sid' // Set a specific session ID cookie name
+    name: 'sid',
+    rolling: true // Extends session on activity
   };
 
   app.use(session(sessionSettings));
@@ -118,7 +122,10 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(201).json(user);
+        req.session.save((err) => {
+          if (err) return next(err);
+          res.status(201).json(user);
+        });
       });
     } catch (err) {
       next(err);
@@ -133,7 +140,6 @@ export function setupAuth(app: Express) {
       }
       req.login(user, (err) => {
         if (err) return next(err);
-        // Save session before responding
         req.session.save((err) => {
           if (err) return next(err);
           res.status(200).json(user);
@@ -143,12 +149,16 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
+    const sessionID = req.session.id;
     req.logout((err) => {
       if (err) return next(err);
       req.session.destroy((err) => {
         if (err) return next(err);
-        res.clearCookie('sid');
-        res.sendStatus(200);
+        store.destroy(sessionID, (err) => {
+          if (err) console.error('Error destroying session:', err);
+          res.clearCookie('sid');
+          res.sendStatus(200);
+        });
       });
     });
   });
