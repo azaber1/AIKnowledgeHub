@@ -23,7 +23,7 @@ export function SearchBar({ className }: SearchBarProps) {
   });
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative w-full", className)}>
       <div className="relative">
         <Input
           value={query}
@@ -41,25 +41,25 @@ export function SearchBar({ className }: SearchBarProps) {
       </div>
 
       {query.length > 0 && (
-        <div className="absolute top-full mt-2 w-full bg-card border rounded-lg shadow-lg p-2 space-y-2 z-10">
+        <div className="absolute top-full mt-2 w-full bg-card border rounded-lg shadow-lg overflow-hidden z-10">
           {results && results.length > 0 ? (
             results.map((article) => (
               <Button
                 key={article.id}
                 variant="ghost"
-                className="w-full justify-start text-left"
+                className="w-full justify-start text-left px-4 py-3 hover:bg-accent/50"
                 onClick={() => setQuery("")}
               >
-                <div>
-                  <div className="font-medium">{article.title}</div>
-                  <div className="text-sm text-muted-foreground line-clamp-1">
+                <div className="w-full">
+                  <div className="font-medium line-clamp-1">{article.title}</div>
+                  <div className="text-sm text-muted-foreground line-clamp-2 mt-1">
                     {article.content}
                   </div>
                 </div>
               </Button>
             ))
           ) : (
-            <div className="text-center py-2 text-muted-foreground">
+            <div className="text-center py-3 text-muted-foreground">
               {isLoading ? "Searching..." : "No articles found"}
             </div>
           )}
