@@ -246,13 +246,18 @@ export function registerRoutes(app: Express): Server {
             return res.status(403).json({ message: "Not a member of this team" });
           }
 
+          // Only show articles from this specific team
           ownershipCondition = eq(articles.teamId, parseInt(teamId as string));
         } else {
-          ownershipCondition = eq(articles.authorId, req.user.id);
+          // In personal space, only show personal articles (where teamId is null)
+          ownershipCondition = and(
+            eq(articles.authorId, req.user.id),
+            eq(articles.teamId, null)
+          );
         }
       }
 
-      // Combine conditions if authenticated
+      // Combine conditions
       const whereCondition = ownershipCondition
         ? and(searchCondition, ownershipCondition)
         : searchCondition;
