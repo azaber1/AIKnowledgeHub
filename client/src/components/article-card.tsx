@@ -9,6 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { useState } from "react";
+import { Link } from "wouter";
 import type { SelectArticle } from "@db/schema";
 
 interface ArticleCardProps {
@@ -43,12 +44,22 @@ export function ArticleCard({ article }: ArticleCardProps) {
           <p className="line-clamp-3 text-muted-foreground">
             {article.content}
           </p>
-          <Button 
-            variant="link" 
-            className="mt-2 p-0 h-auto font-medium text-primary hover:text-primary/80"
-          >
-            Read More →
-          </Button>
+          <div className="mt-4 flex items-center gap-3">
+            <Button 
+              variant="link" 
+              className="p-0 h-auto font-medium text-primary hover:text-primary/80"
+            >
+              Quick Preview →
+            </Button>
+            <Link href={`/article/${article.id}`} onClick={(e) => e.stopPropagation()}>
+              <Button 
+                variant="outline"
+                className="ml-auto"
+              >
+                View Full Article
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
 
@@ -70,6 +81,11 @@ export function ArticleCard({ article }: ArticleCardProps) {
           <CardContent>
             <div className="prose dark:prose-invert max-w-none">
               {article.content}
+            </div>
+            <div className="mt-6 text-right">
+              <Link href={`/article/${article.id}`} onClick={() => setIsOpen(false)}>
+                <Button>View Full Article</Button>
+              </Link>
             </div>
           </CardContent>
         </DialogContent>

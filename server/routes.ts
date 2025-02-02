@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { articles } from "@db/schema";
-import { eq, ilike, or, sql } from "drizzle-orm";
+import { eq, ilike, or } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -38,6 +38,26 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error fetching articles:', error);
       res.status(500).json({ message: "Failed to fetch articles" });
+    }
+  });
+
+  app.get("/api/articles/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const [article] = await db
+        .select()
+        .from(articles)
+        .where(eq(articles.id, parseInt(id)))
+        .limit(1);
+
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+
+      res.json(article);
+    } catch (error) {
+      console.error('Error fetching article:', error);
+      res.status(500).json({ message: "Failed to fetch article" });
     }
   });
 
