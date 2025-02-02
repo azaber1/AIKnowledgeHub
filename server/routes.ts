@@ -3,21 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { articles } from "@db/schema";
-import { eq, sql } from "drizzle-orm";
-import OpenAI from "openai";
-
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// Get embedding using OpenAI
-async function getEmbedding(text: string) {
-  const response = await openai.embeddings.create({
-    model: "text-embedding-ada-002",
-    input: text,
-    encoding_format: "float",
-  });
-  return response.data[0].embedding;
-}
+import { eq, ilike, or, sql } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -32,15 +18,9 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const embedding = await getEmbedding(title + " " + content);
-
-      // Take first 384 dimensions to match database schema
-      const truncatedEmbedding = embedding.slice(0, 384);
-
       const [article] = await db.insert(articles).values({
         title,
         content,
-        embedding: truncatedEmbedding,
         authorId: req.user.id,
       }).returning();
 
@@ -69,35 +49,21 @@ export function registerRoutes(app: Express): Server {
 
     try {
       console.log('Searching for:', q);
-      const queryEmbedding = await getEmbedding(q);
+      const searchTerm = `%${q}%`; // Add wildcards for partial matches
 
-      // Take first 384 dimensions to match database schema
-      const truncatedEmbedding = queryEmbedding.slice(0, 384);
-      console.log('Generated and truncated embedding');
-
-      // Calculate cosine similarity with a lower threshold due to dimension reduction
-      const searchResults = await db.execute(sql`
-        WITH similarity_results AS (
-          SELECT 
-            id, 
-            title, 
-            content, 
-            metadata, 
-            created_at as "createdAt", 
-            updated_at as "updatedAt", 
-            author_id as "authorId",
-            1 - (embedding <=> ${JSON.stringify(truncatedEmbedding)}::vector) as similarity
-          FROM articles
+      const searchResults = await db
+        .select()
+        .from(articles)
+        .where(
+          or(
+            ilike(articles.title, searchTerm),
+            ilike(articles.content, searchTerm)
+          )
         )
-        SELECT *
-        FROM similarity_results
-        WHERE similarity > 0.3
-        ORDER BY similarity DESC
-        LIMIT 5
-      `);
+        .limit(5);
 
-      console.log('Search results:', searchResults.rows);
-      res.json(searchResults.rows);
+      console.log('Search results:', searchResults);
+      res.json(searchResults);
     } catch (error) {
       console.error('Error searching articles:', error);
       res.status(500).json({ message: "Failed to search articles" });
@@ -115,16 +81,10 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const embedding = await getEmbedding(title + " " + content);
-
-      // Take first 384 dimensions to match database schema
-      const truncatedEmbedding = embedding.slice(0, 384);
-
       const [article] = await db.update(articles)
         .set({ 
           title, 
-          content, 
-          embedding: truncatedEmbedding, 
+          content,
           updatedAt: new Date() 
         })
         .where(eq(articles.id, parseInt(id)))
