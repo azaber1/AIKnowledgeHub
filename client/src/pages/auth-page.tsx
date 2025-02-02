@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import type { InsertUser } from "@db/schema";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -31,6 +31,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState<string>("login");
 
   // Redirect if logged in
   useEffect(() => {
@@ -44,13 +45,15 @@ export default function AuthPage() {
       <div className="flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Create an Account</CardTitle>
+            <CardTitle>{activeTab === "login" ? "Welcome Back" : "Create an Account"}</CardTitle>
             <CardDescription>
-              Start sharing your knowledge today
+              {activeTab === "login" 
+                ? "Login to manage your knowledge base articles"
+                : "Start sharing your knowledge today"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login">
+            <Tabs defaultValue="login" onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
