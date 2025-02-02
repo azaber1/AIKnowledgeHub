@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { articles, teams, teamMembers, users } from "@db/schema";
-import { eq, ilike, or, and } from "drizzle-orm";
+import { eq, ilike, or, and, desc } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -67,15 +67,17 @@ export function registerRoutes(app: Express): Server {
           const teamArticles = await db
             .select()
             .from(articles)
-            .where(eq(articles.teamId, parseInt(teamId as string)));
+            .where(eq(articles.teamId, parseInt(teamId as string)))
+            .orderBy(desc(articles.createdAt));
 
           res.json(teamArticles);
         } else {
-          // Show only personal articles (where teamId is null)
+          // In personal space, only show articles with no teamId
           const personalArticles = await db
             .select()
             .from(articles)
-            .where(eq(articles.teamId, null));
+            .where(eq(articles.teamId, null))
+            .orderBy(desc(articles.createdAt));
 
           res.json(personalArticles);
         }
