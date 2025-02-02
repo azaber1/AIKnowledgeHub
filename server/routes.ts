@@ -66,18 +66,33 @@ export function registerRoutes(app: Express): Server {
           return res.status(403).json({ message: "Not a member of this team" });
         }
 
-        // Get team articles
+        // Get team articles - all articles in the team space
         result = await db
-          .select()
+          .select({
+            id: articles.id,
+            title: articles.title,
+            content: articles.content,
+            metadata: articles.metadata,
+            createdAt: articles.createdAt,
+            updatedAt: articles.updatedAt,
+            authorId: articles.authorId,
+            teamId: articles.teamId,
+          })
           .from(articles)
           .where(eq(articles.teamId, parseInt(teamId as string)))
           .orderBy(desc(articles.createdAt));
+
       } else {
-        // In personal space, show all articles without a team
+        // In personal space, show only user's personal articles
         result = await db
           .select()
           .from(articles)
-          .where(eq(articles.teamId, null))
+          .where(
+            and(
+              eq(articles.teamId, null),
+              eq(articles.authorId, req.user.id)
+            )
+          )
           .orderBy(desc(articles.createdAt));
       }
 
