@@ -44,9 +44,9 @@ export default function AuthPage() {
       <div className="flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Welcome Back</CardTitle>
+            <CardTitle>Create an Account</CardTitle>
             <CardDescription>
-              Login to manage your knowledge base articles
+              Start sharing your knowledge today
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -61,10 +61,6 @@ export default function AuthPage() {
               </TabsContent>
 
               <TabsContent value="register">
-                <div className="mb-4">
-                  <h2 className="text-2xl font-semibold">Join Our Knowledge Hub</h2>
-                  <p className="text-muted-foreground">Create your account to start sharing knowledge</p>
-                </div>
                 <RegisterForm onSubmit={(data) => {
                   const { confirmPassword: _, ...userData } = data;
                   registerMutation.mutate(userData);
