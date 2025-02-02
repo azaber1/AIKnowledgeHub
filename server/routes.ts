@@ -201,7 +201,7 @@ export function registerRoutes(app: Express): Server {
 
     try {
       // If teamId is provided, verify user is a team member
-      if (teamId) {
+      if (teamId !== null && teamId !== undefined) {
         const [membership] = await db
           .select()
           .from(teamMembers)
@@ -225,6 +225,7 @@ export function registerRoutes(app: Express): Server {
         teamId: teamId || null,
       }).returning();
 
+      console.log('Created article:', { id: article.id, title, teamId: teamId || 'personal' });
       res.json(article);
     } catch (error) {
       console.error('Error creating article:', error);
