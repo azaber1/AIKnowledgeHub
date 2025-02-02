@@ -63,14 +63,23 @@ export function registerRoutes(app: Express): Server {
             return res.status(403).json({ message: "Not a member of this team" });
           }
 
-          // Show all articles for this team
+          // Show all articles for this team ordered by creation date
           const teamArticles = await db
-            .select()
+            .select({
+              id: articles.id,
+              title: articles.title,
+              content: articles.content,
+              metadata: articles.metadata,
+              createdAt: articles.createdAt,
+              updatedAt: articles.updatedAt,
+              authorId: articles.authorId,
+              teamId: articles.teamId,
+            })
             .from(articles)
             .where(eq(articles.teamId, parseInt(teamId as string)))
             .orderBy(desc(articles.createdAt));
 
-          res.json(teamArticles);
+          return res.json(teamArticles);
         } else {
           // In personal space, only show articles with no teamId
           const personalArticles = await db
@@ -79,7 +88,7 @@ export function registerRoutes(app: Express): Server {
             .where(eq(articles.teamId, null))
             .orderBy(desc(articles.createdAt));
 
-          res.json(personalArticles);
+          return res.json(personalArticles);
         }
       } else {
         // For unauthenticated users, only show public articles (if any)
