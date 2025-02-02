@@ -25,14 +25,21 @@ interface ArticleEditorProps {
   article?: SelectArticle;
   isCreate?: boolean;
   onSuccess?: () => void;
+  teamId?: number | null;
 }
 
-export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorProps) {
+export function ArticleEditor({ article, isCreate, onSuccess, teamId }: ArticleEditorProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const form = useForm<FormData>({
     resolver: zodResolver(articleSchema),
-    defaultValues: article || {
+    defaultValues: article ? {
+      title: article.title,
+      content: article.content,
+      metadata: {
+        category: article.metadata?.category || "Getting Started"
+      }
+    } : {
       title: "",
       content: "",
       metadata: {
@@ -43,11 +50,11 @@ export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorPro
 
   const createMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const res = await apiRequest("POST", "/api/articles", data);
+      const res = await apiRequest("POST", "/api/articles", { ...data, teamId });
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/articles", teamId] });
       toast({ title: "Article created successfully" });
       form.reset();
       onSuccess?.();
@@ -67,7 +74,7 @@ export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorPro
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/articles", teamId] });
       toast({ title: "Article updated successfully" });
       onSuccess?.();
     },
@@ -85,7 +92,7 @@ export function ArticleEditor({ article, isCreate, onSuccess }: ArticleEditorPro
       await apiRequest("DELETE", `/api/articles/${article?.id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/articles", teamId] });
       toast({ title: "Article deleted successfully" });
       onSuccess?.();
     },

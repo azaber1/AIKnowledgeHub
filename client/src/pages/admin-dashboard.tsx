@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArticleEditor } from "@/components/article-editor";
+import { TeamManagement } from "@/components/team-management";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowLeft } from "lucide-react";
 import { useState } from "react";
@@ -9,8 +10,19 @@ import type { SelectArticle } from "@db/schema";
 
 export default function AdminDashboard() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+
   const { data: articles, isLoading } = useQuery<SelectArticle[]>({
-    queryKey: ["/api/articles"],
+    queryKey: ["/api/articles", selectedTeamId],
+    queryFn: async () => {
+      const url = new URL("/api/articles", window.location.origin);
+      if (selectedTeamId) {
+        url.searchParams.set("teamId", selectedTeamId.toString());
+      }
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch articles");
+      return res.json();
+    },
   });
 
   return (
@@ -35,6 +47,13 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
+        <div className="mb-6">
+          <TeamManagement
+            selectedTeamId={selectedTeamId}
+            onTeamSelect={setSelectedTeamId}
+          />
+        </div>
+
         <div className="space-y-4">
           {isLoading ? (
             Array(3).fill(0).map((_, i) => (
@@ -53,7 +72,11 @@ export default function AdminDashboard() {
             </div>
           ) : (
             articles?.map(article => (
-              <ArticleEditor key={article.id} article={article} />
+              <ArticleEditor 
+                key={article.id} 
+                article={article} 
+                teamId={selectedTeamId}
+              />
             ))
           )}
         </div>
@@ -63,7 +86,11 @@ export default function AdminDashboard() {
             <DialogHeader>
               <DialogTitle>Create New Article</DialogTitle>
             </DialogHeader>
-            <ArticleEditor isCreate onSuccess={() => setIsCreateOpen(false)} />
+            <ArticleEditor 
+              isCreate 
+              teamId={selectedTeamId}
+              onSuccess={() => setIsCreateOpen(false)} 
+            />
           </DialogContent>
         </Dialog>
       </div>
