@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { articles, teams, teamMembers, users } from "@db/schema";
-import { eq, ilike, or, and, desc } from "drizzle-orm";
+import { eq, ilike, or, and, desc, sql } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -85,19 +85,31 @@ export function registerRoutes(app: Express): Server {
       } else {
         // In personal space, show only user's personal articles
         result = await db
-          .select()
+          .select({
+            id: articles.id,
+            title: articles.title,
+            content: articles.content,
+            metadata: articles.metadata,
+            createdAt: articles.createdAt,
+            updatedAt: articles.updatedAt,
+            authorId: articles.authorId,
+            teamId: articles.teamId,
+          })
           .from(articles)
           .where(
             and(
-              eq(articles.teamId, null),
-              eq(articles.authorId, req.user.id)
+              eq(articles.authorId, req.user.id),
+              // Use IS NULL for checking null values
+              sql`${articles.teamId} IS NULL`
             )
           )
           .orderBy(desc(articles.createdAt));
       }
 
       // Add debug logging
-      console.log('Fetched articles:', result?.length || 0, 'articles for user:', req.user.id, 'teamId:', teamId || 'personal');
+      console.log('Query params:', { userId: req.user.id, teamId: teamId || 'personal' });
+      console.log('Fetched articles:', result?.length || 0, 'articles');
+      console.log('First article (if any):', result?.[0]);
 
       return res.json(result || []);
     } catch (error) {
