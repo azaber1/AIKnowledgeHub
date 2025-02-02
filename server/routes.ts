@@ -303,7 +303,8 @@ export function registerRoutes(app: Express): Server {
           .where(
             and(
               searchCondition,
-              eq(articles.teamId, null)
+              eq(articles.authorId, req.user.id),
+              sql`${articles.teamId} IS NULL`
             )
           )
           .orderBy(desc(articles.createdAt))
