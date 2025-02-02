@@ -25,13 +25,15 @@ export default function HomePage() {
     queryKey: ["/api/articles", selectedTeamId],
     queryFn: async () => {
       const url = new URL("/api/articles", window.location.origin);
-      if (selectedTeamId) {
+      if (selectedTeamId !== null) {
         url.searchParams.set("teamId", selectedTeamId.toString());
       }
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch articles");
       return res.json();
     },
+    staleTime: 1000, // Consider data fresh for 1 second
+    cacheTime: 5 * 60 * 1000, // Keep data in cache for 5 minutes
   });
 
   // Group articles by category
@@ -53,14 +55,7 @@ export default function HomePage() {
     }
   };
 
-  // If not logged in, redirect to auth page
-  useEffect(() => {
-    if (!user && !logoutMutation.isPending) {
-      setLocation('/auth');
-    }
-  }, [user, logoutMutation.isPending, setLocation]);
-
-    // Update localStorage when team changes
+  // Update localStorage when team changes
   const handleTeamSelect = (teamId: number | null) => {
     setSelectedTeamId(teamId);
     if (teamId === null) {
