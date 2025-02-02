@@ -45,14 +45,35 @@ export function registerRoutes(app: Express): Server {
     try {
       let query = db.select().from(articles);
 
-      // If authenticated, filter by team
+      // If authenticated, filter by team or personal articles
       if (req.isAuthenticated()) {
         const teamId = req.query.teamId;
+
         if (teamId) {
+          // First verify user is a member of this team
+          const [membership] = await db
+            .select()
+            .from(teamMembers)
+            .where(
+              and(
+                eq(teamMembers.teamId, parseInt(teamId as string)),
+                eq(teamMembers.userId, req.user.id)
+              )
+            );
+
+          if (!membership) {
+            return res.status(403).json({ message: "Not a member of this team" });
+          }
+
+          // Show team articles
           query = query.where(eq(articles.teamId, parseInt(teamId as string)));
         } else {
+          // Show only personal articles
           query = query.where(eq(articles.authorId, req.user.id));
         }
+      } else {
+        // For unauthenticated users, only show public articles (if any)
+        return res.json([]);
       }
 
       const allArticles = await query;
@@ -210,6 +231,21 @@ export function registerRoutes(app: Express): Server {
       if (req.isAuthenticated()) {
         const teamId = req.query.teamId;
         if (teamId) {
+          // First verify user is a member of this team
+          const [membership] = await db
+            .select()
+            .from(teamMembers)
+            .where(
+              and(
+                eq(teamMembers.teamId, parseInt(teamId as string)),
+                eq(teamMembers.userId, req.user.id)
+              )
+            );
+
+          if (!membership) {
+            return res.status(403).json({ message: "Not a member of this team" });
+          }
+
           ownershipCondition = eq(articles.teamId, parseInt(teamId as string));
         } else {
           ownershipCondition = eq(articles.authorId, req.user.id);
@@ -266,11 +302,11 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const [article] = await db.update(articles)
-        .set({ 
-          title, 
+        .set({
+          title,
           content,
           metadata,
-          updatedAt: new Date() 
+          updatedAt: new Date()
         })
         .where(eq(articles.id, parseInt(id)))
         .returning();
