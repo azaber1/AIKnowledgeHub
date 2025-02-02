@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { articles, teams, teamMembers } from "@db/schema";
+import { articles, teams, teamMembers, users } from "@db/schema";
 import { eq, ilike, or, and } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
@@ -38,6 +38,28 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error creating team:', error);
       res.status(500).json({ message: "Failed to create team" });
+    }
+  });
+
+  app.get("/api/articles", async (req, res) => {
+    try {
+      let query = db.select().from(articles);
+
+      // If authenticated, filter by team
+      if (req.isAuthenticated()) {
+        const teamId = req.query.teamId;
+        if (teamId) {
+          query = query.where(eq(articles.teamId, parseInt(teamId as string)));
+        } else {
+          query = query.where(eq(articles.authorId, req.user.id));
+        }
+      }
+
+      const allArticles = await query;
+      res.json(allArticles);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      res.status(500).json({ message: "Failed to fetch articles" });
     }
   });
 
@@ -126,7 +148,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Existing routes
   app.post("/api/articles", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -167,16 +188,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/articles", async (req, res) => {
-    try {
-      const allArticles = await db.select().from(articles);
-      res.json(allArticles);
-    } catch (error) {
-      console.error('Error fetching articles:', error);
-      res.status(500).json({ message: "Failed to fetch articles" });
-    }
-  });
-
   // Important: Put search route before the :id route to avoid path conflicts
   app.get("/api/articles/search", async (req, res) => {
     const { q } = req.query;
@@ -185,10 +196,8 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      console.log('Searching for:', q);
       const searchTerm = `%${q}%`; // Add wildcards for partial matches
-
-      const searchResults = await db
+      let query = db
         .select()
         .from(articles)
         .where(
@@ -199,7 +208,12 @@ export function registerRoutes(app: Express): Server {
         )
         .limit(5);
 
-      console.log('Search results:', searchResults);
+      // If authenticated, filter by team
+      if (req.isAuthenticated() && req.query.teamId) {
+        query = query.where(eq(articles.teamId, parseInt(req.query.teamId as string)));
+      }
+
+      const searchResults = await query;
       res.json(searchResults);
     } catch (error) {
       console.error('Error searching articles:', error);
