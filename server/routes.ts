@@ -34,10 +34,13 @@ export function registerRoutes(app: Express): Server {
     try {
       const embedding = await getEmbedding(title + " " + content);
 
+      // Take first 384 dimensions to match database schema
+      const truncatedEmbedding = embedding.slice(0, 384);
+
       const [article] = await db.insert(articles).values({
         title,
         content,
-        embedding,
+        embedding: truncatedEmbedding,
         authorId: req.user.id,
       }).returning();
 
@@ -67,9 +70,12 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('Searching for:', q);
       const queryEmbedding = await getEmbedding(q);
-      console.log('Generated embedding');
 
-      // Calculate cosine similarity with a higher threshold
+      // Take first 384 dimensions to match database schema
+      const truncatedEmbedding = queryEmbedding.slice(0, 384);
+      console.log('Generated and truncated embedding');
+
+      // Calculate cosine similarity with a lower threshold due to dimension reduction
       const searchResults = await db.execute(sql`
         WITH similarity_results AS (
           SELECT 
@@ -80,12 +86,12 @@ export function registerRoutes(app: Express): Server {
             created_at as "createdAt", 
             updated_at as "updatedAt", 
             author_id as "authorId",
-            1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+            1 - (embedding <=> ${JSON.stringify(truncatedEmbedding)}::vector) as similarity
           FROM articles
         )
         SELECT *
         FROM similarity_results
-        WHERE similarity > 0.7
+        WHERE similarity > 0.3
         ORDER BY similarity DESC
         LIMIT 5
       `);
@@ -111,8 +117,16 @@ export function registerRoutes(app: Express): Server {
     try {
       const embedding = await getEmbedding(title + " " + content);
 
+      // Take first 384 dimensions to match database schema
+      const truncatedEmbedding = embedding.slice(0, 384);
+
       const [article] = await db.update(articles)
-        .set({ title, content, embedding, updatedAt: new Date() })
+        .set({ 
+          title, 
+          content, 
+          embedding: truncatedEmbedding, 
+          updatedAt: new Date() 
+        })
         .where(eq(articles.id, parseInt(id)))
         .returning();
 

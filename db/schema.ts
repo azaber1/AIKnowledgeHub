@@ -12,7 +12,7 @@ export const articles = pgTable("articles", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   content: text("content").notNull(),
-  embedding: vector("embedding", { dimensions: 384 }).notNull(),
+  embedding: vector("embedding", { dimensions: 1536 }).notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
