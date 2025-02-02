@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 import type { SelectArticle } from "@db/schema";
 
 interface SearchBarProps {
@@ -13,6 +14,8 @@ interface SearchBarProps {
 
 export function SearchBar({ className, teamId }: SearchBarProps) {
   const [query, setQuery] = useState("");
+  const [, setLocation] = useLocation();
+
   const { data: results, isLoading } = useQuery<SelectArticle[]>({
     queryKey: ["/api/articles/search", query, teamId],
     enabled: query.length > 0,
@@ -27,6 +30,11 @@ export function SearchBar({ className, teamId }: SearchBarProps) {
       return res.json();
     }
   });
+
+  const handleArticleClick = (articleId: number) => {
+    setQuery(""); // Clear search
+    setLocation(`/article/${articleId}`); // Navigate to article
+  };
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -54,7 +62,7 @@ export function SearchBar({ className, teamId }: SearchBarProps) {
                 key={article.id}
                 variant="ghost"
                 className="w-full justify-start text-left px-4 py-3 hover:bg-accent/50"
-                onClick={() => setQuery("")}
+                onClick={() => handleArticleClick(article.id)}
               >
                 <div className="w-full">
                   <div className="font-medium line-clamp-1">{article.title}</div>
