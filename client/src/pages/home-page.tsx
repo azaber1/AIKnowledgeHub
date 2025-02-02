@@ -7,7 +7,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, LogOut, Loader2, LogIn } from "lucide-react";
 import type { SelectArticle } from "@db/schema";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface GroupedArticles {
   [key: string]: SelectArticle[];
@@ -29,11 +29,14 @@ export default function HomePage() {
         url.searchParams.set("teamId", selectedTeamId.toString());
       }
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch articles");
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to fetch articles");
+      }
       return res.json();
     },
     staleTime: 1000, // Consider data fresh for 1 second
-    cacheTime: 5 * 60 * 1000, // Keep data in cache for 5 minutes
+    gcTime: 5 * 60 * 1000, // Keep data in cache for 5 minutes
   });
 
   // Group articles by category
@@ -146,6 +149,21 @@ export default function HomePage() {
               </div>
             </div>
           ))
+        ) : articles?.length === 0 ? (
+          <div className="text-center py-12 bg-muted/10 rounded-lg border-2 border-dashed">
+            <h3 className="text-lg font-medium mb-2">No articles yet</h3>
+            <p className="text-muted-foreground mb-4">
+              {selectedTeamId 
+                ? "No team articles found"
+                : "No personal articles found"}
+            </p>
+            <Link href="/admin">
+              <Button>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Create Article
+              </Button>
+            </Link>
+          </div>
         ) : (
           Object.entries(groupedArticles).map(([category, categoryArticles]) => (
             <div key={category} className="mb-12">
