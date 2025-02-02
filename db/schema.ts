@@ -28,6 +28,7 @@ export const articles = pgTable("articles", {
   title: text("title").notNull(),
   content: text("content").notNull(),
   metadata: jsonb("metadata"),
+  embedding: jsonb("embedding"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   authorId: serial("author_id").references(() => users.id),
